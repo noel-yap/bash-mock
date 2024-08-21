@@ -1,0 +1,4 @@
+declare -F dependency-function >/dev/null ||
+function dependency-function() {
+  echo "$@"
+}

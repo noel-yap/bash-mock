@@ -1,0 +1,28 @@
+# shellcheck disable=SC2148
+
+# @inject allows an executable call to be mocked out by defining a function that calls the executable by default.
+# A pre-defined function of the same name will take precedence thereby allowing mocking.
+# Example:
+#   In sut-script.sh:
+#     @inject /path/to/dependency-executable.sh
+#
+#     dependency-executable dependency-executable-args
+#
+#   In sut-script.bats:
+#     declare -F dependency-executable >/dev/null ||
+#     function dependency-executable() {
+#       assert_equal "$1" 'arg1'
+#     }
+#
+#     run sut-script sut-script-args
+function @inject() {
+  executable="$1"
+  shift $#
+
+  fn="$(basename "${executable}" | sed -e 's|\..*||')"
+
+  quot='"'
+  declare -F "${fn}" >/dev/null ||
+      [ "${fn}" == "${executable}" ] ||
+      eval "function ${fn}() { ${executable} ${quot}\$@${quot}; }"
+}

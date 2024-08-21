@@ -1,0 +1,43 @@
+# shellcheck disable=SC2148
+
+# @mock creates a base mock function that delegates to other mock implementations.
+# Example:
+#   In sut-script.sh:
+#     @inject dependency-executable
+#
+#     dependency-executable dependency-executable-args
+#
+#   In sut-script.bats:
+#     @mock dependency-executable
+#     # will be called on sut-script.sh's first call to dependency-executable
+#     function dependency-executable@0() {
+#       assert_equal "$1" 'first-call'
+#     } &&
+#     export -f dependency-executable@0
+#     # will be called on sut-script.sh's second call to dependency-executable
+#     function dependency-executable@1() {
+#       assert_equal "$1" 'second-call'
+#     } &&
+#     export -f dependency-executable@1
+#
+#     run sut-script sut-script-args
+# TODO(nyap): support each mock implementation being called a specified number of times; currently, each implementation is called only once
+function @mock() {
+  tmpdir="$(mktemp -d --tmpdir="${BATS_TMPDIR}")"
+
+  name="$1"
+  counter_name="${name/-/_}_counter"
+  counter_filename="${tmpdir}/${counter_name}"
+
+  echo "${counter_name}=0" >"${counter_filename}"
+
+  quot='"'
+  # since the mock can be called from sub-shells, the counter state is stored in a file
+  eval "function ${name}() {
+    . ${counter_filename};
+    echo ${counter_name}=\$((${counter_name} + 1)) >${counter_filename};
+
+    ${name}@\${${counter_name}} ${quot}\$@${quot};
+  }"
+  export -f ${name}
+}
