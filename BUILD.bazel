@@ -1,0 +1,13 @@
+load("@bazel_bats//:rules.bzl", "bats_test")
+
+sh_library(
+    name = "bash-mock",
+    srcs = glob(["*.shlib"]),
+)
+
+bats_test(
+  name = "bats_test",
+  srcs = glob(["*.bats"]),
+  data = glob(["testdata/**"]),
+  deps = [":bash-mock"],
+)
