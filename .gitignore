@@ -1,2 +1,7 @@
-.idea
+# bazel
+.bazelprofile
 bazel-*
+
+# idea
+.idea
+.ijwb

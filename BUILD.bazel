@@ -1,4 +1,4 @@
-load("@bazel_bats//:rules.bzl", "bats_test")
+load("@aspect_bazel_lib//lib:bats.bzl", "bats_test")
 
 sh_library(
     name = "bash-mock",
@@ -8,6 +8,5 @@ sh_library(
 bats_test(
   name = "bats_test",
   srcs = glob(["*.bats"]),
-  data = glob(["testdata/**"]),
-  deps = [":bash-mock"],
+  data = [":bash-mock"] + glob(["testdata/**"]),
 )

@@ -5,4 +5,4 @@
 # For more details, please check https://github.com/bazelbuild/bazel/issues/18958
 ###############################################################################
 
-# TODO(nyap): if/when bazel_bats supports MODULE, migrate WORKSPACE
+bazel_dep(name = "aspect_bazel_lib", version = "2.8.1")
