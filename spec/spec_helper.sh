@@ -29,3 +29,6 @@ spec_helper_configure() {
 # Source library functions under test
 # shellcheck source=../in-tempdir.shlib
 . "${PROJECT_ROOT_DIR}/in-tempdir.shlib"
+
+# shellcheck source=../mock-first-with-rest.shlib
+. "${PROJECT_ROOT_DIR}/mock-first-with-rest.shlib"

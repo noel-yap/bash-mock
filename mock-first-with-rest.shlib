@@ -1,0 +1,102 @@
+# shellcheck shell=bash
+
+# mock_first_with_rest
+# ---------------------
+# Create a mock executable that returns a successive, caller‑provided behavior
+# on each invocation, and persists an index so the next call advances to the
+# next behavior. When all behaviors are exhausted, the mock prints an error to
+# stderr and exits non‑zero. Re‑invoking this function for the same dependency
+# resets the index back to 0.
+#
+# Why this exists
+# - When testing shell scripts that call external executables ("dependencies"),
+#   it’s useful to simulate different outcomes across repeated calls: success,
+#   failure, specific outputs, etc. This helper generates a small mock program
+#   that plays back behaviors one by one.
+#
+# Runtime model
+# - A hidden file named ".<dependency>.index" tracks which behavior to run.
+# - Each time the generated mock runs, it:
+#   1) Reads the current index
+#   2) Executes the indexed behavior
+#   3) Increments and persists the index regardless of success/failure
+#   4) Exits with the behavior’s exit status
+# - If the index is beyond the last behavior, it reports an error and exits 1.
+#
+# Usage
+#   mock_first_with_rest <dependency> <behavior1> [behavior2 ...]
+#
+# Parameters
+#   <dependency>  The file name to create as the mock executable (e.g. "git").
+#                 The function writes the script to "./<dependency>" and marks
+#                 it executable. The index file used is ".<dependency>.index".
+#   <behaviorN>   A shell snippet (string) or path to an executable to run.
+#                 Behaviors are evaluated via `eval` inside a subshell
+#                 so they can be simple one‑liners like 'echo ok; exit 0'.
+#
+# Notes
+# - Re‑calling mock_first_with_rest with the same <dependency> overwrites the
+#   mock script and resets ".<dependency>.index" to 0.
+# - Place the working directory containing the generated mock at the front of
+#   PATH when invoking the dependency under test.
+#
+# Examples
+#   # Example 1: inline behaviors
+#   mock_first_with_rest dependency \
+#     'echo first;  exit 0' \
+#     'echo second; exit 7'
+#   PATH="${PWD}:${PATH}" dependency  # prints "first", exits 0
+#   PATH="${PWD}:${PATH}" dependency  # prints "second", exits 7
+#   PATH="${PWD}:${PATH}" dependency  # prints error, exits 1 (exhausted)
+#
+#   # Example 2: behaviors as helper scripts
+#   printf '%s\n' '#!/bin/sh' 'echo one' > dep-0 && chmod +x dep-0
+#   printf '%s\n' '#!/bin/sh' 'echo two' > dep-1 && chmod +x dep-1
+#   mock_first_with_rest dependency dep-0 dep-1
+#   PATH="${PWD}:${PATH}" dependency  # "one"
+#   PATH="${PWD}:${PATH}" dependency  # "two"
+
+mock_first_with_rest() {
+  local -r _dependency="${1}"
+  shift
+
+  # Behaviors provided by caller (bash required)
+  local -a -r _behaviors=("$@")
+
+  local -r index_filename=".${_dependency}.index"
+
+  # Initialize index to 0 every time we (re)mock
+  echo '0' >"${index_filename}"
+
+  # Generate the mock script (/bin/sh)
+  #   # This script:
+  #   #  - Reads the current index at runtime
+  #   #  - Evaluates the selected behavior in a subshell to capture its exit code
+  #   #  - Increments and persists the index regardless of behavior status
+  #   #  - Exits with the behavior's exit code
+  # shellcheck disable=SC2016,SC2028
+  {
+    echo "#!/bin/bash"
+    echo "set -euo pipefail"
+
+    echo "readonly dependency='${_dependency}'"
+    echo "readonly index_filename='${index_filename}'"
+    echo 'readonly index="$(<"${index_filename}")"'
+    echo '_cleanup() {'
+    echo '  echo $((index + 1)) >"${index_filename}"'
+    echo '}'
+    # Ensure index increment on exit
+    echo 'trap _cleanup EXIT'
+
+    echo "readonly behaviors=( $(printf '"%s" ' "${_behaviors[@]}") )"
+    echo 'readonly behavior_count=${#behaviors[@]}'
+
+    echo 'if [ "${index}" -ge "${behavior_count}" ]; then'
+    echo '  printf "%s\n" "ERROR: ${dependency}: no more mocked behaviors (index ${index} >= ${behavior_count})" >&2'
+    echo '  exit 1'
+    echo 'else'
+    echo '  ( eval "${behaviors[${index}]}" )'
+    echo 'fi'
+  } | tee >"${_dependency}"
+  chmod +x "${_dependency}"
+}
