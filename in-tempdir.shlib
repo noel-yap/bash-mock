@@ -1,0 +1,30 @@
+# shellcheck shell=sh
+
+# Run a given function inside a temporary working directory and ensure cleanup.
+# Usage:
+#   in_tempdir my_function [arg1 arg2 ...]
+# - Creates a temp directory, cd's into it, runs the given function with args,
+#   and removes the temp directory before exiting, even if failures occur.
+in_tempdir() {
+  readonly _callee="${1}"
+  shift
+  (
+    set -e
+    _tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/shellspec-XXXXXXXX")" || {
+      printf '%s\n' "Failed to create temporary directory" >&2
+      exit 1
+    }
+    readonly _tmpdir
+    _cleanup() {
+      rm -rf "${_tmpdir}"
+    }
+    # Ensure cleanup on normal exit
+    trap _cleanup EXIT
+
+    # Enter the temp directory and run the target function with all args
+    (
+      cd "${_tmpdir}"
+      "${_callee}" "$@"
+    )
+  )
+}

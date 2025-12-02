@@ -25,3 +25,7 @@ spec_helper_configure() {
   # Available functions: import, before_each, after_each, before_all, after_all
   : import 'support/custom_matcher'
 }
+
+# Source library functions under test
+# shellcheck source=../in-tempdir.shlib
+. "${PROJECT_ROOT_DIR}/in-tempdir.shlib"
