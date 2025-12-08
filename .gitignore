@@ -3,5 +3,7 @@
 bazel-*
 
 # idea
-.idea
+.idea/
 .ijwb
+
+coverage/

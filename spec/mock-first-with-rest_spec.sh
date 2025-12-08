@@ -133,4 +133,30 @@ Describe 'mock_first_with_rest'
     The lines of stdout should equal 3
   End
 
+  It 'executes behavior in a subshell so EXIT trap in behavior does not override parent trap'
+    run_subshell_check() {
+      # The behavior sets its own EXIT trap to create a file, then exits 0.
+      # If behavior ran in the same shell, it would override the parent's trap
+      # and prevent the index increment. Running in a subshell should:
+      #  - create the touched file from the subshell EXIT trap, and
+      #  - still allow the parent EXIT trap to increment the index to 1.
+      mock_first_with_rest dependency \
+        'trap "echo SUBSHELL > touched" EXIT; exit 0'
+      chmod +x dependency
+
+      out="$(bash ./dependency 2>&1)"; rc=$?
+
+      printf '%s\n' "${rc}"
+      printf 'index=%s\n' "$(cat .dependency.index)"
+      [ -f touched ] && echo 'touched:yes'
+    }
+
+    When call in_tempdir run_subshell_check
+    The status should be success
+    The line 1 of stdout should equal '0'
+    The line 2 of stdout should equal 'index=1'
+    The line 3 of stdout should equal 'touched:yes'
+    The lines of stdout should equal 3
+  End
+
 End

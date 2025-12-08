@@ -61,7 +61,8 @@ mock_first_with_rest() {
   shift
 
   # Behaviors provided by caller (bash required)
-  local -a -r _behaviors=("$@")
+  # Serialize behaviors safely for bash by using printf %q to escape properly
+  local -r _behaviors="$(printf ' %q' "$@")"
 
   local -r index_filename=".${_dependency}.index"
 
@@ -88,7 +89,7 @@ mock_first_with_rest() {
     # Ensure index increment on exit
     echo 'trap _cleanup EXIT'
 
-    echo "readonly behaviors=( $(printf '"%s" ' "${_behaviors[@]}") )"
+    echo "readonly -a behaviors=( ${_behaviors} )"
     echo 'readonly behavior_count=${#behaviors[@]}'
 
     echo 'if [ "${index}" -ge "${behavior_count}" ]; then'
