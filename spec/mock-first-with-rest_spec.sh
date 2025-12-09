@@ -21,6 +21,29 @@ Describe 'mock_first_with_rest'
     The lines of stdout should equal 2
   End
 
+  It 'preserves behaviors containing spaces (would break with word-splitting old impl)'
+    run_with_spaces() {
+      # The old implementation built the array like: behaviors=( ${_behaviors} )
+      # which would split on spaces and break a single behavior into multiple
+      # elements. The new implementation uses `declare -p behaviors`, preserving
+      # each behavior as a single array element.
+      mock_first_with_rest dependency \
+        'echo one two; exit 0' \
+        'echo three four; exit 0'
+
+      out1="$(bash ./dependency 2>&1)"
+      out2="$(bash ./dependency 2>&1)"
+
+      printf '%s\n' "${out1}" "${out2}"
+    }
+
+    When call in_tempdir run_with_spaces
+    The status should be success
+    The line 1 of stdout should equal 'one two'
+    The line 2 of stdout should equal 'three four'
+    The lines of stdout should equal 2
+  End
+
   It 'returns successive behaviors on each invocation and increments index'
     # Given
     prepare_then_execute_sut() {
@@ -55,7 +78,6 @@ Describe 'mock_first_with_rest'
       mock_first_with_rest dependency \
         'echo first; exit 0' \
         'echo second; exit 7'
-      chmod +x dependency
 
       out1="$(bash ./dependency 2>&1)"; rc1=$?
       out2="$(bash ./dependency 2>&1)"; rc2=$?
@@ -82,7 +104,6 @@ Describe 'mock_first_with_rest'
     run_exhausted() {
       mock_first_with_rest dependency \
         'echo only; exit 3'
-      chmod +x dependency
 
       out1="$(bash ./dependency 2>&1)"; rc1=$?
       out2="$(bash ./dependency 2>&1)"; rc2=$?
@@ -110,7 +131,6 @@ Describe 'mock_first_with_rest'
       mock_first_with_rest dependency \
         'echo first-A; exit 0' \
         'echo second-A; exit 0'
-      chmod +x dependency
 
       _="$(bash ./dependency)"; _="$(bash ./dependency)"
 
@@ -142,7 +162,6 @@ Describe 'mock_first_with_rest'
       #  - still allow the parent EXIT trap to increment the index to 1.
       mock_first_with_rest dependency \
         'trap "echo SUBSHELL > touched" EXIT; exit 0'
-      chmod +x dependency
 
       out="$(bash ./dependency 2>&1)"; rc=$?
 
