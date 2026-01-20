@@ -68,7 +68,7 @@ mock_first_with_rest() {
   # Initialize index to 0 every time we (re)mock
   echo '0' >"${index_filename}"
 
-  # Generate the mock script (/bin/sh)
+  # Generate the mock script
   #   # This script:
   #   #  - Reads the current index at runtime
   #   #  - Evaluates the selected behavior in a subshell to capture its exit code
