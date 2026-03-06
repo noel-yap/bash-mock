@@ -19,10 +19,10 @@ function @inject() {
   executable="$1"
   shift $#
 
-  fn="$(basename "${executable}" | sed -e 's|\..*||')"
+  fn="$(basename "${executable}" | sed -e 's|\..*||' -e 's| |_|g')"
 
   quot='"'
   declare -F "${fn}" >/dev/null ||
       [ "${fn}" == "${executable}" ] ||
-      eval "function ${fn}() { ${executable} ${quot}\$@${quot}; }"
+      eval "function ${fn}() { '${executable}' ${quot}\$@${quot}; }"
 }

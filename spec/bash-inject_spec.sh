@@ -113,4 +113,34 @@ Describe '@inject'
     The lines of stdout should equal 2
   End
 
+  It 'replaces spaces in basename with underscores to form a valid function name'
+    # Given
+    spaces_in_name_test() {
+      setup_lib
+
+      # Create an executable whose basename contains spaces
+      local -r exec_path="${PWD}/Google Chrome"
+      {
+        echo '#!/bin/bash'
+        echo 'echo chrome-ran'
+      } >"${exec_path}"
+      chmod +x "${exec_path}"
+
+      # Inject: should define function named "Google_Chrome"
+      @inject "${exec_path}"
+      local output
+      output="$(Google_Chrome 2>&1)"
+      local -r code=$?
+      readonly output
+
+      printf '%s\n%s\n' "${output}" "${code}"
+    }
+
+    When call in_tempdir spaces_in_name_test
+    The status should be success
+    The line 1 of stdout should equal 'chrome-ran'
+    The line 2 of stdout should equal '0'
+    The lines of stdout should equal 2
+  End
+
 End
