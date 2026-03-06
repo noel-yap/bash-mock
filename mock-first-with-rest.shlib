@@ -37,24 +37,24 @@
 # Notes
 # - Re‑calling mock_first_with_rest with the same <dependency> overwrites the
 #   mock script and resets ".<dependency>.index" to 0.
-# - Place the working directory containing the generated mock at the front of
-#   PATH when invoking the dependency under test.
+# - mock_first_with_rest sets PATH="${PWD}:${PATH}" so the generated mock is
+#   found automatically when invoking the dependency under test.
 #
 # Examples
 #   # Example 1: inline behaviors
 #   mock_first_with_rest dependency \
 #     'echo first;  exit 0' \
 #     'echo second; exit 7'
-#   PATH="${PWD}:${PATH}" dependency  # prints "first", exits 0
-#   PATH="${PWD}:${PATH}" dependency  # prints "second", exits 7
-#   PATH="${PWD}:${PATH}" dependency  # prints error, exits 1 (exhausted)
+#   dependency  # prints "first", exits 0
+#   dependency  # prints "second", exits 7
+#   dependency  # prints error, exits 1 (exhausted)
 #
 #   # Example 2: behaviors as helper scripts
 #   printf '%s\n' '#!/bin/sh' 'echo one' > dep-0 && chmod +x dep-0
 #   printf '%s\n' '#!/bin/sh' 'echo two' > dep-1 && chmod +x dep-1
 #   mock_first_with_rest dependency dep-0 dep-1
-#   PATH="${PWD}:${PATH}" dependency  # "one"
-#   PATH="${PWD}:${PATH}" dependency  # "two"
+#   dependency  # "one"
+#   dependency  # "two"
 
 mock_first_with_rest() {
   local -r _dependency="${1}"
@@ -99,4 +99,5 @@ mock_first_with_rest() {
     echo 'fi'
   } >"${_dependency}"
   chmod +x "${_dependency}"
+  PATH="${PWD}:${PATH}"
 }
